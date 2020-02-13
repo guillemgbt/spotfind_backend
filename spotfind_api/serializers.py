@@ -12,3 +12,9 @@ class SpotSerializer(serializers.ModelSerializer):
     class Meta:
         model = Spot
         fields = ('id', 'created', 'image', 'is_free', 'lot_id')
+
+
+class FlightStateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FlightState
+        fields = ('id', 'state', 'lot_id', 'created')

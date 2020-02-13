@@ -1,9 +1,10 @@
-from spotfind_api.models import Lot, Spot
-from spotfind_api.serializers import LotSerializer, SpotSerializer
+from spotfind_api.models import Lot, Spot, FlightState
+from spotfind_api.serializers import LotSerializer, SpotSerializer, FlightStateSerializer
 from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from spotfind_api import constants
 
 
 class LotList(APIView):
@@ -117,4 +118,68 @@ class LotSpots(APIView):
         lot = self.get_lot(pk)
         spots = Spot.objects.filter(lot_id=lot.id)
         serializer = SpotSerializer(spots, many=True)
+        return Response(serializer.data)
+
+
+class FlightStateRequest(APIView):
+    """
+    Retreive current flight state
+    """
+    def get_flight_state(self, lot_id):
+        state = FlightState.objects.all().filter(lot_id=lot_id).first()
+        if state is None:
+            raise Http404
+        else:
+            return state
+
+    def get(self, request, pk, format=None):
+        state = self.get_flight_state(pk)
+        serializer = FlightStateSerializer(state)
+        return Response(serializer.data)
+
+
+class StartFlight(APIView):
+    """
+    Requests starting a flight in a particular lot
+    """
+    def get_create_flight_state(self, lot_id):
+        state = FlightState.objects.filter(lot_id=lot_id).first()
+
+        if state is None:
+            state = FlightState(lot_id=lot_id)
+        state.state = constants.STATE_STARTING
+        state.save()
+
+        return state
+
+    def get_lot(self, pk):
+        try:
+            return Lot.objects.get(pk=pk)
+        except Lot.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk, format=None):
+        lot = self.get_lot(pk=pk)
+        state = self.get_create_flight_state(lot.id)
+        serializer = FlightStateSerializer(state)
+        return Response(serializer.data)
+
+
+class StopFlight(APIView):
+    """
+    Requests stopping a flight in a particular lot
+    """
+    def get_flight_state(self, lot_id):
+        state = FlightState.objects.filter(lot_id=lot_id).first()
+
+        if state is None:
+            raise Http404
+        else:
+            return state
+
+    def get(self, request, pk, format=None):
+        flight_state = self.get_flight_state(lot_id=pk)
+        flight_state.state = constants.STATE_STOPPING
+        flight_state.save(update_fields=['state'])
+        serializer = FlightStateSerializer(flight_state)
         return Response(serializer.data)

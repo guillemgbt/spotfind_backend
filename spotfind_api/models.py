@@ -23,3 +23,13 @@ class Spot(models.Model):
     class Meta:
         ordering = ('-created',)
 
+
+class FlightState(models.Model):
+    state = models.CharField(max_length=100, blank=False, default=constants.STATE_LANDED)
+    lot_id = models.IntegerField()
+    enabled = models.BooleanField(default=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('-created',)
+
