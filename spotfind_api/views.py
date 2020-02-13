@@ -165,7 +165,7 @@ class StartFlight(APIView):
         serializer = FlightStateSerializer(state)
 
         if state.enabled:
-            flight = FlightControl()
+            flight = FlightControl(lot_id=lot.id)
             flight.async_start()
 
         return Response(serializer.data)

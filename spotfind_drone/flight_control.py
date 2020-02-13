@@ -9,7 +9,8 @@ from spotfind_drone.frame_capture import FrameCapture
 
 class FlightControl:
 
-    def __init__(self):
+    def __init__(self, lot_id):
+        self.lot_id = lot_id
         self.time_constant = 0.2
         self.drone_speed = 10
         self.drone = None
