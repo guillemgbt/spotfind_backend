@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from spotfind_api import constants
+from spotfind_drone.flight_control import FlightControl
 
 
 class LotList(APIView):
@@ -162,6 +163,11 @@ class StartFlight(APIView):
         lot = self.get_lot(pk=pk)
         state = self.get_create_flight_state(lot.id)
         serializer = FlightStateSerializer(state)
+
+        if state.enabled:
+            flight = FlightControl()
+            flight.async_start()
+
         return Response(serializer.data)
 
 
