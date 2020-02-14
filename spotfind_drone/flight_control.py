@@ -5,11 +5,7 @@ from spotfind_api import constants
 from djitellopy import Tello
 from spotfind_drone.utils import Utils
 from spotfind_drone.frame_capture import FrameCapture
-
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import cv2
-
 
 
 class FlightControl:
@@ -19,6 +15,7 @@ class FlightControl:
         self.time_constant = 0.2
         self.drone_speed = 10
         self.drone = None
+
 
     def async_start(self):
         t = threading.Thread(target=self.start, name='flight_thread')
@@ -34,29 +31,41 @@ class FlightControl:
         Utils.printInfo('Analysing lot ' + lot.name)
 
         self.set_up_drone()
-        #self.set_initial_position()
+        self.set_initial_position()
 
-        stream = FrameCapture(drone=self.drone)
-        stream.start()
-        time.sleep(4)
+        stream = self.prepare_stream()
 
         Utils.printInfo('Stream set up')
 
         should_stop = False
         plt.ion()
-        count = 1
+        self.set_state_to(constants.STATE_SCANNING)
         while not should_stop:
             time.sleep(2)
             img = stream.frame
             plt.imshow(img)
             plt.pause(0.05)
-            count -= 1
-            should_stop = (count <= 0)
+
+            height = self.drone.get_height()
+            Utils.printInfo('drone height: '+str(height))
+
+            flight_state = self.get_flight_state()
+            should_stop = flight_state.state == constants.STATE_STOPPING
+
+
+
+            # Adjust position with SSD and Img Class (4 positions (90 degrees))
+                #if successful -> Obj Detection + process
+            # Far movement. Stop using SSD and Img Class
+
+
 
         Utils.printInfo('Loop Done')
 
         stream.stop()
+        self.drone.land()
         time.sleep(2)
+        self.set_state_to(constants.STATE_LANDED)   # 17
         self.drone.end()
 
 
@@ -107,9 +116,14 @@ class FlightControl:
 
         Utils.printInfo('Drone setup successful')
 
+    def prepare_stream(self):
+        stream = FrameCapture(drone=self.drone)
+        stream.start()
+        time.sleep(3)
+        return stream
+
     def set_initial_position(self):
         self.drone.takeoff()
         time.sleep(3)
-        self.drone.land()
-        time.sleep(3)
+
 
