@@ -6,6 +6,11 @@ from djitellopy import Tello
 from spotfind_drone.utils import Utils
 from spotfind_drone.frame_capture import FrameCapture
 
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import cv2
+
+
 
 class FlightControl:
 
@@ -29,8 +34,30 @@ class FlightControl:
         Utils.printInfo('Analysing lot ' + lot.name)
 
         self.set_up_drone()
-        self.set_initial_position()
+        #self.set_initial_position()
 
+        stream = FrameCapture(drone=self.drone)
+        stream.start()
+        time.sleep(4)
+
+        Utils.printInfo('Stream set up')
+
+        should_stop = False
+        plt.ion()
+        count = 1
+        while not should_stop:
+            time.sleep(2)
+            img = stream.frame
+            plt.imshow(img)
+            plt.pause(0.05)
+            count -= 1
+            should_stop = (count <= 0)
+
+        Utils.printInfo('Loop Done')
+
+        stream.stop()
+        time.sleep(2)
+        self.drone.end()
 
 
     def get_flight_state(self):

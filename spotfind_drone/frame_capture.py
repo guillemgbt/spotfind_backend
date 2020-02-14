@@ -1,5 +1,6 @@
 from threading import Thread
 import cv2
+import numpy as np
 from djitellopy import Tello
 from spotfind_drone.utils import Utils
 
@@ -44,8 +45,8 @@ class FrameCapture:
     def prepare_frame_from_stream(self):
         (self.grabbed, _frame) = self.stream.read()
         if self.grabbed:
-            _frame = cv2.flip(_frame, 1)
-            self.frame = cv2.resize(_frame, (1280, 720))
+            _frame = cv2.cvtColor(_frame, cv2.COLOR_BGR2RGB)
+            self.frame = _frame
 
     def stop(self):
         self.stopped = True
