@@ -9,7 +9,7 @@ parser.add_option("-l", "--lot",
 (options, args) = parser.parse_args()
 
 if not options.lot:
-    parser.error('Error: path to images must be specified. Pass --path to command line')
+    parser.error('Error: lot to scan must be specified. Pass --lot to command line')
 
 LOT_ID = options.lot
 
