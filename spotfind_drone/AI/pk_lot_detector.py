@@ -50,3 +50,8 @@ class FasterRCNNResnet50PKLotDetector(ParkingLotDetector):
 class SSDMobilenetV2PKLotDetector(ParkingLotDetector):
     def __init__(self):
         super().__init__(model_filepath='frozen_networks/ssd_mobilenet_v2_frozen_network.pb')
+
+
+class SSDInceptionPKLotDetector(ParkingLotDetector):
+    def __init__(self):
+        super().__init__(model_filepath='frozen_networks/ssd_inception_frozen_network.pb')
