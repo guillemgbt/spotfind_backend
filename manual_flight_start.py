@@ -45,6 +45,7 @@ def start_flight_at(lot):
     flight_control = FlightControl(lot_id=lot.id)
     flight_control.start()
 
+
 def main():
     lot = fetch_lot(id=LOT_ID)
     get_create_flight_state(lot_id=lot.id)

@@ -282,3 +282,6 @@ fabric.properties
 # Pyre type checker
 
 # End of https://www.gitignore.io/api/macos,django,python,pycharm
+
+spotfind_drone/AI/frozen_networks/frcnn_resnet50_frozen_network.pb
+

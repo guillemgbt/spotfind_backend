@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import os
+import cv2
 
 
 
@@ -23,8 +24,21 @@ class IsLotCNN(object):
 
         tf.import_graph_def(graph_def, {'input': self.input, 'keep_prob': self.keep_prob})
 
-    def predict(self, data):
+    def compute_net_output(self, data):
         output_tensor = self.graph.get_tensor_by_name("import/output:0")
         output = self.sess.run(output_tensor, feed_dict={self.input: data, self.keep_prob: 1.0})
 
         return output
+
+    def convert_cv2_read(self, image):
+        img = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        img = cv2.resize(img, (128, 128))
+        img = img.reshape(1, 128, 128, 1)
+        img = img/255.0
+        return img
+
+    def predict(self, image):
+        img = self.convert_cv2_read(image=image)
+        output = self.compute_net_output(data=img)
+        return output[0, 1]
+
