@@ -37,8 +37,20 @@ class IsLotCNN(object):
         img = img/255.0
         return img
 
+    def convert_drone_img(self, image):
+        img = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        img = cv2.resize(img, (128, 128))
+        img = img.reshape(1, 128, 128, 1)
+        img = img / 255.0
+        return img
+
     def predict(self, image):
         img = self.convert_cv2_read(image=image)
+        output = self.compute_net_output(data=img)
+        return output[0, 1]
+
+    def predict_drone_img(self, image):
+        img = self.convert_drone_img(image=image)
         output = self.compute_net_output(data=img)
         return output[0, 1]
 

@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
 class ParkingLotDetector(object):
@@ -35,6 +35,16 @@ class ParkingLotDetector(object):
                 feed_dict={self.image_tensor: img_expanded})
         return boxes, scores, classes, num
 
+    def detect_drone_img(self, image):
+        img = ParkingLotDetector.load_image_into_numpy_array(image)
+        # Bounding Box Detection.
+        with self.detection_graph.as_default():
+            # Expand dimension since the model expects image to have shape [1, None, None, 3].
+            img_expanded = np.expand_dims(img, axis=0)
+            (boxes, scores, classes, num) = self.sess.run(
+                [self.d_boxes, self.d_scores, self.d_classes, self.num_d],
+                feed_dict={self.image_tensor: img_expanded})
+        return boxes, scores, classes, num
 
     @staticmethod
     def load_image_into_numpy_array(image):
@@ -55,3 +65,8 @@ class SSDMobilenetV2PKLotDetector(ParkingLotDetector):
 class SSDInceptionPKLotDetector(ParkingLotDetector):
     def __init__(self):
         super().__init__(model_filepath='frozen_networks/ssd_inception_frozen_network.pb')
+
+
+class FasterRCNNInceptionPKLotDetector(ParkingLotDetector):
+    def __init__(self):
+        super().__init__(model_filepath='frozen_networks/frcnn_inception_frozen_network.pb')

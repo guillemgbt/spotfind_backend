@@ -5,6 +5,8 @@ from spotfind_api import constants
 from djitellopy import Tello
 from spotfind_drone.utils import Utils
 from spotfind_drone.frame_capture import FrameCapture
+from spotfind_drone.AI.is_lot_cnn import IsLotCNN
+from spotfind_drone.AI.pk_lot_detector import SSDInceptionPKLotDetector
 import matplotlib.pyplot as plt
 
 
@@ -31,7 +33,7 @@ class FlightControl:
         Utils.printInfo('Analysing lot ' + lot.name)
 
         self.set_up_drone()
-        self.set_initial_position()
+        #self.set_initial_position()
 
         stream = self.prepare_stream()
 
@@ -43,6 +45,19 @@ class FlightControl:
         while not should_stop:
             time.sleep(2)
             img = stream.frame
+
+            print('-----')
+
+            print(img.shape)
+            print(img)
+
+            cnn = IsLotCNN()
+            out = cnn.predict_drone_img(image=img)
+            detector = SSDInceptionPKLotDetector()
+            detector.detect_drone_img(image=img)
+            print('Predict: {}'.format(out))
+            print('-----')
+
             plt.imshow(img)
             plt.pause(0.05)
 
@@ -51,7 +66,7 @@ class FlightControl:
 
             flight_state = self.get_flight_state()
             should_stop = flight_state.state == constants.STATE_STOPPING
-
+            should_stop = True
 
 
             # Adjust position with SSD and Img Class (4 positions (90 degrees))
