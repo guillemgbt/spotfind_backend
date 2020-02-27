@@ -5,6 +5,36 @@ import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
+class PKLotBox(object):
+    def __init__(self, xmin, ymin, xmax, ymax, occupancy, confidence):
+        self.xmin = xmin
+        self.ymin = ymin
+        self.xmax = xmax
+        self.ymax = ymax
+        self.occupancy = occupancy
+        self.confidence = confidence
+
+    def get_box(self):
+        return np.array([self.xmin, self.ymin, self.xmax, self.ymax])
+
+    def get_class(self):
+        return "occupied" if self.occupancy == 1.0 else "free"
+
+    @staticmethod
+    def parse_classification(image, boxes, scores, classes, confidence):
+        width = image.shape[1]
+        height = image.shape[0]
+
+        pk_boxes = [PKLotBox(xmin=boxes[0][index][1] * width,
+                             ymin=boxes[0][index][0] * height,
+                             xmax=boxes[0][index][3] * width,
+                             ymax=boxes[0][index][2] * height,
+                             occupancy=classes[0][index],
+                             confidence=score) for index, score in enumerate(scores[0]) if score > confidence]
+
+        return pk_boxes
+
+
 class ParkingLotDetector(object):
     def __init__(self, model_filepath='frozen_networks/frcnn_resnet50_frozen_network.pb'):
         self.model_filepath = os.path.dirname(os.path.abspath(__file__)) + '/' + model_filepath
@@ -22,29 +52,28 @@ class ParkingLotDetector(object):
             self.num_d = self.detection_graph.get_tensor_by_name('num_detections:0')
         self.sess = tf.Session(graph=self.detection_graph)
 
-    def get_classification(self, img_path):
+    def get_classification_from_path(self, img_path, confidence):
 
         image = ParkingLotDetector.load_image_into_numpy_array(Image.open(img_path))
 
-        # Bounding Box Detection.
         with self.detection_graph.as_default():
             # Expand dimension since the model expects image to have shape [1, None, None, 3].
             img_expanded = np.expand_dims(image, axis=0)
             (boxes, scores, classes, num) = self.sess.run(
                 [self.d_boxes, self.d_scores, self.d_classes, self.num_d],
                 feed_dict={self.image_tensor: img_expanded})
-        return boxes, scores, classes, num
 
-    def detect_drone_img(self, image):
-        img = ParkingLotDetector.load_image_into_numpy_array(image)
-        # Bounding Box Detection.
+        return PKLotBox.parse_classification(image, boxes, scores, classes, confidence)
+
+    def detect_drone_img(self, image, confidence):
+
         with self.detection_graph.as_default():
             # Expand dimension since the model expects image to have shape [1, None, None, 3].
-            img_expanded = np.expand_dims(img, axis=0)
+            img_expanded = np.expand_dims(image, axis=0)
             (boxes, scores, classes, num) = self.sess.run(
                 [self.d_boxes, self.d_scores, self.d_classes, self.num_d],
                 feed_dict={self.image_tensor: img_expanded})
-        return boxes, scores, classes, num
+        return PKLotBox.parse_classification(image, boxes, scores, classes, confidence)
 
     @staticmethod
     def load_image_into_numpy_array(image):

@@ -16,39 +16,51 @@ def predict_drone_img_to_isLot_prob():
     img = cv2.imread(img_path)
     cnn = IsLotCNN()
     out = cnn.predict(image=img)
-    print('  -> PROB: {} being lot for image {}'.format(out, img_path))
+    print('-> PROB: {} being lot for image {}'.format(out, img_path))
 
 
 def predict_drone_img_lot_detection_frcnn_resnet50():
     img_path = 'spotfind_drone/test_drone_images/2.jpg'
     detector = FasterRCNNResnet50PKLotDetector()
-    boxes, scores, classes, num = detector.get_classification(img_path=img_path)
-    print()
-    print('  -> First PKLot detection with FRCNNResnet50: {} at {} confidance level'.format(boxes[0,0,:], scores[0,0]))
+    boxes = detector.get_classification_from_path(img_path=img_path, confidence=0.8)
+
+    box = boxes[0].get_box()
+    occ = boxes[0].get_class()
+    confidence = boxes[0].confidence
+    print('-> First PKLot detection with FRCNNResnet50: {}, {}, at {} confidance level'.format(box, occ, confidence))
 
 
 def predict_drone_img_lot_detection_ssd_mobilenet_v2():
     img_path = 'spotfind_drone/test_drone_images/2.jpg'
     detector = SSDMobilenetV2PKLotDetector()
-    boxes, scores, classes, num = detector.get_classification(img_path=img_path)
-    print()
-    print('  -> First PKLot detection with SSDMobilenetV2: {} at {} confidance level'.format(boxes[0,0,:], scores[0,0]))
+    boxes = detector.get_classification_from_path(img_path=img_path, confidence=0.8)
+
+    box = boxes[0].get_box()
+    occ = boxes[0].get_class()
+    confidence = boxes[0].confidence
+    print('-> First PKLot detection with SSdMobilenetV2: {}, {}, at {} confidance level'.format(box, occ, confidence))
 
 
 def predict_drone_img_lot_detection_ssd_inception():
     img_path = 'spotfind_drone/test_drone_images/2.jpg'
     detector = SSDInceptionPKLotDetector()
-    boxes, scores, classes, num = detector.get_classification(img_path=img_path)
-    print()
-    print('  -> First PKLot detection with SSDInception: {} at {} confidance level'.format(boxes[0,0,:], scores[0,0]))
+    boxes = detector.get_classification_from_path(img_path=img_path, confidence=0.8)
+
+    box = boxes[0].get_box()
+    occ = boxes[0].get_class()
+    confidence = boxes[0].confidence
+    print('-> First PKLot detection with SSDInception: {}, {}, at {} confidance level'.format(box, occ, confidence))
 
 
 def predict_drone_img_lot_detection_frcnn_inception():
     img_path = 'spotfind_drone/test_drone_images/2.jpg'
     detector = FasterRCNNInceptionPKLotDetector()
-    boxes, scores, classes, num = detector.get_classification(img_path=img_path)
-    print()
-    print('  -> First PKLot detection with FasterRCNNInception: {} at {} confidance level'.format(boxes[0,0,:], scores[0,0]))
+    boxes = detector.get_classification_from_path(img_path=img_path, confidence=0.8)
+
+    box = boxes[0].get_box()
+    occ = boxes[0].get_class()
+    confidence = boxes[0].confidence
+    print('-> First PKLot detection with FasterRCNNInception: {}, {}, at {} confidance level'.format(box, occ, confidence))
 
 
 def main():

@@ -6,7 +6,7 @@ from djitellopy import Tello
 from spotfind_drone.utils import Utils
 from spotfind_drone.frame_capture import FrameCapture
 from spotfind_drone.AI.is_lot_cnn import IsLotCNN
-from spotfind_drone.AI.pk_lot_detector import SSDInceptionPKLotDetector
+from spotfind_drone.AI.pk_lot_detector import SSDInceptionPKLotDetector, FasterRCNNResnet50PKLotDetector
 import matplotlib.pyplot as plt
 
 
@@ -39,6 +39,9 @@ class FlightControl:
 
         Utils.printInfo('Stream set up')
 
+        cnn = IsLotCNN()
+        detector = FasterRCNNResnet50PKLotDetector()
+
         should_stop = False
         plt.ion()
         self.set_state_to(constants.STATE_SCANNING)
@@ -48,14 +51,12 @@ class FlightControl:
 
             print('-----')
 
-            print(img.shape)
-            print(img)
+            lot_prob = cnn.predict_drone_img(image=img)
+            pk_boxes = detector.detect_drone_img(img, confidence=0.8)
 
-            cnn = IsLotCNN()
-            out = cnn.predict_drone_img(image=img)
-            detector = SSDInceptionPKLotDetector()
-            detector.detect_drone_img(image=img)
-            print('Predict: {}'.format(out))
+            print('-> Is lot with {} of probability'.format(lot_prob))
+            print('-> {} lot detections at {} conf. level'.format(len(pk_boxes), 0.8))
+            [print(' -> {} - {}'.format(box.get_class(), box.get_box())) for box in pk_boxes]
             print('-----')
 
             plt.imshow(img)
@@ -78,10 +79,7 @@ class FlightControl:
         Utils.printInfo('Loop Done')
 
         stream.stop()
-        self.drone.land()
-        time.sleep(2)
-        self.set_state_to(constants.STATE_LANDED)   # 17
-        self.drone.end()
+        self.finish_flight()
 
 
     def get_flight_state(self):
@@ -140,5 +138,11 @@ class FlightControl:
     def set_initial_position(self):
         self.drone.takeoff()
         time.sleep(3)
+
+    def finish_flight(self):
+        self.drone.land()
+        time.sleep(2)
+        self.set_state_to(constants.STATE_LANDED)  # 17
+        self.drone.end()
 
 
