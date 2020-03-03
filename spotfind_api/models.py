@@ -1,6 +1,6 @@
 from django.db import models
 from spotfind_api import constants
-
+from spotfind_backend import settings
 
 class Lot(models.Model):
     name = models.CharField(max_length=100, blank=False, default='')
@@ -19,6 +19,12 @@ class Spot(models.Model):
     image = models.ImageField(blank=True, null=True)
     is_free = models.BooleanField()
     lot_id = models.IntegerField()
+
+    def get_img_file(self):
+        return str(self.id)+'_'+str(self.lot_id)+'_img.jpg'
+
+    def get_img_path(self):
+        return settings.BASE_DIR + settings.MEDIA_URL+self.get_img_file()
 
     class Meta:
         ordering = ('-created',)

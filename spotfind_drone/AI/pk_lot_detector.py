@@ -2,6 +2,8 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 import os
+from matplotlib import pyplot as plt
+from matplotlib import patches
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
@@ -79,6 +81,35 @@ class ParkingLotDetector(object):
     def load_image_into_numpy_array(image):
         (im_width, im_height) = image.size
         return np.array(image.getdata()).reshape((im_height, im_width, 3)).astype(np.uint8)
+
+    @staticmethod
+    def visualize(image, detections, score_threshold):
+        fig, ax = plt.subplots(1)
+
+        # add axes to the image
+        ax = fig.add_axes([0, 0, 1, 1])
+
+        # add bounding boxes to the image
+        for index, detection in enumerate(detections):
+            if detection.confidence >= score_threshold:
+                y_min = detection.ymin
+                x_min = detection.xmin
+                y_max = detection.ymax
+                x_max = detection.xmax
+                occupancy = detection.get_class()
+
+                color = 'r'
+                if occupancy == 'free':
+                    color = 'b'
+
+                box_width = x_max - x_min
+                box_height = y_max - y_min
+
+                rect = patches.Rectangle((x_min, y_min), box_width, box_height, edgecolor=color, facecolor='none')
+                ax.add_patch(rect)
+
+        ax.imshow(image)
+        plt.show()
 
 
 class FasterRCNNResnet50PKLotDetector(ParkingLotDetector):
