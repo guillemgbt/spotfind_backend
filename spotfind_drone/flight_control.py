@@ -18,7 +18,6 @@ class FlightControl:
         self.drone_speed = 10
         self.drone = None
 
-
     def async_start(self):
         t = threading.Thread(target=self.start, name='flight_thread')
         t.start()
