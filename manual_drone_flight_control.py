@@ -6,7 +6,13 @@ import time
 import os
 from datetime import datetime
 import threading
-from spotfind_drone.AI.pk_lot_detector import FasterRCNNInceptionPKLotDetector, SSDMobilenetV2PKLotDetector
+
+import django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "spotfind_backend.settings")
+django.setup()
+
+
+from spotfind_drone.AI.pk_lot_detector import FasterRCNNInceptionPKLotDetector, SSDMobilenetV2PKLotDetector, PKLotBox
 from spotfind_drone.AI.is_lot_cnn import IsLotCNN
 from spotfind_drone.pk_lot_data_retriever import PKLotDataRetriever
 
@@ -134,33 +140,62 @@ class FrontEnd(object):
         if self.record_frame & (not self.is_processing_frame):
             self.record_frame = False
             self.is_processing_frame = True
-            t = threading.Thread(target=self.compute_frame, args=(frame), name='flight_thread')
+            t = threading.Thread(target=self.compute_frame, args=(frame,), name='capture_thread')
             t.start()
 
     def compute_frame(self, frame):
         print('-- CAPTURING FRAME')
         lot_prob = self.isLotCNN.predict_drone_img(frame)
+        detection_text = ''
+        preds = []
         if self.is_computing_spots:
             print('-- COMPTUTING SPOTS')
-            pred = self.lotDetector.detect_drone_img(image=frame, confidence=0.7)
+            preds = self.lotDetector.detect_drone_img(image=frame, confidence=0.7)
+            pred_count = len(preds)
+            detection_text = '[PKLot-FRCNN] {} spots found at 0.7 level'.format(pred_count)
+
         else:
             print('-- COMPTUTING POSE')
-            pred = self.fastLotDetector.detect_drone_img(image=frame, confidence=0.8)
-            pred_count = len(pred)
+            preds = self.fastLotDetector.detect_drone_img(image=frame, confidence=0.8)
+            pred_count = len(preds)
+            detection_text = '[PKLot-SSD] {} spots found at 0.8 level'.format(pred_count)
 
-        isLotText = '[IsLotCNN] IS LOT PROBABILITY: {}%'.format(lot_prob*100)
+        isLotText = '[IsLotCNN] IS LOT PROBABILITY: {0:.2f}%'.format(lot_prob*100)
 
         print(isLotText)
+        print(detection_text)
+
+        #preds = [PKLotBox(120,120,300,300,2.0,0.9)]
 
         img = cv2.putText(img=frame,
                           text=isLotText,
                           org=(50, 50),
                           fontFace=cv2.FONT_HERSHEY_COMPLEX,
                           fontScale=1,
-                          color=(255, 0, 0))
+                          color=(255, 255, 255),
+                          thickness=2)
+
+        img = cv2.putText(img=img,
+                          text=detection_text,
+                          org=(50, 100),
+                          fontFace=cv2.FONT_HERSHEY_COMPLEX,
+                          fontScale=1,
+                          color=(255, 255, 255),
+                          thickness=2)
+
+
+        for pred in preds:
+            is_free = pred.get_class() == 'free'
+            sp = (pred.xmin, pred.ymin)
+            ep = (pred.xmax, pred.ymax)
+            img = cv2.rectangle(img=img,
+                                pt1=sp,
+                                pt2=ep,
+                                color=(255*is_free, 255*(not is_free), 0),
+                                thickness=2)
 
         img_path = TAKE_DIR + str(self.image_count) + '.jpg'
-        cv2.imwrite(img_path, img=frame)
+        cv2.imwrite(img_path, img=img)
         self.image_count += 1
         self.is_processing_frame = False
 
@@ -187,7 +222,7 @@ class FrontEnd(object):
         elif key == pygame.K_d:  # set yaw clockwise velocity
             self.yaw_velocity = S
         elif key == pygame.K_c:
-            self.record_frame = not self.record_frame
+            self.record_frame = True
         elif key == pygame.K_s:
             self.is_computing_spots = True
         elif key == pygame.K_p:
