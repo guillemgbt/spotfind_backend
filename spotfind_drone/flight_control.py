@@ -6,17 +6,27 @@ from djitellopy import Tello
 from spotfind_drone.utils import Utils
 from spotfind_drone.frame_capture import FrameCapture
 from spotfind_drone.AI.is_lot_cnn import IsLotCNN
-from spotfind_drone.AI.pk_lot_detector import SSDInceptionPKLotDetector, FasterRCNNResnet50PKLotDetector
+from spotfind_drone.AI.pk_lot_detector import SSDMobilenetV2PKLotDetector, FasterRCNNResnet50PKLotDetector
+from spotfind_drone.pk_lot_data_retriever import PKLotDataRetriever
 import matplotlib.pyplot as plt
+import random
 
 
 class FlightControl:
 
     def __init__(self, lot_id):
         self.lot_id = lot_id
-        self.time_constant = 0.2
+        self.initial_height = 500
         self.drone_speed = 10
         self.drone = None
+        self.ssd_pklot = None
+        self.ssd_lot_thr = 3
+        self.ssd_detect_conf = 0.8
+        self.frcnn_pklot = None
+        self.frcnn_detect_conf = 0.7
+        self.cnn_is_lot = None
+        self.is_lot_thr = 0.8
+        self.info_retriever = PKLotDataRetriever(lot_id=lot_id)
 
     def async_start(self):
         t = threading.Thread(target=self.start, name='flight_thread')
@@ -32,46 +42,44 @@ class FlightControl:
         Utils.printInfo('Analysing lot ' + lot.name)
 
         self.set_up_drone()
-        #self.set_initial_position()
+        self.set_initial_position()
+        Utils.printInfo('Done is in initial position')
 
         stream = self.prepare_stream()
 
-        Utils.printInfo('Stream set up')
-
-        cnn = IsLotCNN()
-        detector = FasterRCNNResnet50PKLotDetector()
-
-        should_stop = False
-        plt.ion()
         self.set_state_to(constants.STATE_SCANNING)
-        while not should_stop:
+
+        while True:
             time.sleep(2)
+
             img = stream.frame
 
-            print('-----')
+            Utils.printInfo('Finding initial pose.')
 
-            lot_prob = cnn.predict_drone_img(image=img)
-            pk_boxes = detector.detect_drone_img(img, confidence=0.8)
+            while not self.is_pointing_to_lot(image=img):
+                Utils.printInfo('Not pointing to lot in initial position yet.')
+                self.adjust_initial_pose()
+                img = stream.frame
 
-            print('-> Is lot with {} of probability'.format(lot_prob))
-            print('-> {} lot detections at {} conf. level'.format(len(pk_boxes), 0.8))
-            [print(' -> {} - {}'.format(box.get_class(), box.get_box())) for box in pk_boxes]
-            print('-----')
+                if self.should_finish_flight():
+                    break
 
-            plt.imshow(img)
-            plt.pause(0.05)
+            if self.should_finish_flight():
+                break
 
+            Utils.printInfo('Initial pose found')
+            Utils.printInfo('Retrieving info from image.')
+            self.retrieve_info_from(image=img, clear_db_spots=True)
+
+            #Adjust height if needed
             height = self.drone.get_height()
             Utils.printInfo('drone height: '+str(height))
 
-            flight_state = self.get_flight_state()
-            should_stop = flight_state.state == constants.STATE_STOPPING
-            should_stop = True
+            if self.should_finish_flight():
+                break
 
+            break #To test only one iteration
 
-            # Adjust position with SSD and Img Class (4 positions (90 degrees))
-                #if successful -> Obj Detection + process
-            # Far movement. Stop using SSD and Img Class
 
 
 
@@ -79,6 +87,38 @@ class FlightControl:
 
         stream.stop()
         self.finish_flight()
+
+    def retrieve_info_from(self, image, clear_db_spots):
+        detections = self.frcnn_pklot.detect_drone_img(image, confidence=self.frcnn_detect_conf)
+        self.info_retriever.retrieve_data_from(lot_image=image,
+                                               predictions=detections,
+                                               should_clear_spots=clear_db_spots)
+
+    def is_pointing_to_lot(self, image):
+        is_lot = self.cnn_is_lot.predict_drone_img(image=image)
+        lots = self.ssd_pklot.detect_drone_img(image, confidence=self.ssd_detect_conf)
+        lot_count = len(lots)
+        Utils.printInfo('isLot: {0:.3f}, ssd lots: {} at {} conf.'.format(is_lot, lot_count, self.ssd_detect_conf))
+        return (is_lot >= self.is_lot_thr) & (lot_count >= self.ssd_lot_thr)
+
+    def adjust_initial_pose(self):
+        Utils.printInfo('Adjusting initial position')
+        rotation_direction = random.randint(0, 1)
+        rotation_angle = random.randint(20, 180)
+        forward_distance = random.randint(100, 300)
+
+        if rotation_direction:
+            Utils.printInfo('Rotating clockwise: {}'.format(rotation_angle))
+            self.drone.rotate_clockwise(rotation_angle)
+        else:
+            Utils.printInfo('Rotating counter clockwise: {}'.format(rotation_angle))
+            self.drone.rotate_counter_clockwise(rotation_angle)
+
+        time.sleep(1)
+
+        Utils.printInfo('Moving forward: {}'.format(forward_distance))
+        self.drone.move_forward(forward_distance)
+        time.sleep(1)
 
 
     def get_flight_state(self):
@@ -101,6 +141,11 @@ class FlightControl:
         flight_state.state = new_state
         flight_state.save(update_fields=['state'])
         Utils.printInfo('setting flight state to: '+flight_state.state)
+
+    def set_up_networks(self):
+        self.frcnn_pklot = FasterRCNNResnet50PKLotDetector()
+        self.ssd_pklot = SSDMobilenetV2PKLotDetector()
+        self.cnn_is_lot = IsLotCNN()
 
     def set_up_drone(self):
 
@@ -137,6 +182,14 @@ class FlightControl:
     def set_initial_position(self):
         self.drone.takeoff()
         time.sleep(3)
+        if not self.drone.move_up(self.initial_height):
+            Utils.printError('Could not set initial height')
+            self.set_state_to(constants.STATE_ERROR)
+            exit(0)
+
+    def should_finish_flight(self):
+        flight_state = self.get_flight_state()
+        return flight_state.state == constants.STATE_STOPPING or flight_state.state == constants.STATE_ERROR
 
     def finish_flight(self):
         self.drone.land()

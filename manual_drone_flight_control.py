@@ -183,6 +183,8 @@ class FrontEnd(object):
                           color=(255, 255, 255),
                           thickness=2)
 
+        height = self.drone.get_height()
+        print('-- drone height: ' + str(height))
 
         for pred in preds:
             is_free = pred.get_class() == 'free'
