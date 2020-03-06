@@ -156,9 +156,9 @@ class FrontEnd(object):
 
         else:
             print('-- COMPTUTING POSE')
-            preds = self.fastLotDetector.detect_drone_img(image=frame, confidence=0.8)
+            preds = self.lotDetector.detect_drone_img(image=frame, confidence=0.7)
             pred_count = len(preds)
-            detection_text = '[PKLot-SSD] {} spots found at 0.8 level'.format(pred_count)
+            detection_text = '[PKLot-SSD] {} spots found at 0.7 level'.format(pred_count)
 
         isLotText = '[IsLotCNN] IS LOT PROBABILITY: {0:.2f}%'.format(lot_prob*100)
 
@@ -183,17 +183,17 @@ class FrontEnd(object):
                           color=(255, 255, 255),
                           thickness=2)
 
-        height = self.drone.get_height()
+        height = self.tello.get_height()
         print('-- drone height: ' + str(height))
 
         for pred in preds:
             is_free = pred.get_class() == 'free'
-            sp = (pred.xmin, pred.ymin)
-            ep = (pred.xmax, pred.ymax)
+            sp = (int(pred.xmin), int(pred.ymin))
+            ep = (int(pred.xmax), int(pred.ymax))
             img = cv2.rectangle(img=img,
                                 pt1=sp,
                                 pt2=ep,
-                                color=(255*is_free, 255*(not is_free), 0),
+                                color=(int(255*is_free), int(255*(not is_free)), 0),
                                 thickness=2)
 
         img_path = TAKE_DIR + str(self.image_count) + '.jpg'
@@ -225,7 +225,7 @@ class FrontEnd(object):
             self.yaw_velocity = S
         elif key == pygame.K_c:
             self.record_frame = True
-        elif key == pygame.K_s:
+        elif key == pygame.K_e:
             self.is_computing_spots = True
         elif key == pygame.K_p:
             self.is_computing_spots = False
