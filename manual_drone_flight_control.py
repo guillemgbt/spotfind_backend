@@ -63,8 +63,8 @@ class FrontEnd(object):
         self.is_computing_spots = False
         self.image_count = 0
         self.isLotCNN = IsLotCNN()
-        self.lotDetector = FasterRCNNResnet50PKLotDetector()
-        self.fastLotDetector = SSDInceptionPKLotDetector()
+        self.lotDetector = FasterRCNNInceptionPKLotDetector()
+        self.fastLotDetector = FasterRCNNInceptionPKLotDetector()
 
         # create update timer
         pygame.time.set_timer(pygame.USEREVENT + 1, 50)
@@ -152,20 +152,18 @@ class FrontEnd(object):
             print('-- COMPTUTING SPOTS')
             preds = self.lotDetector.detect_drone_img(image=frame, confidence=0.7)
             pred_count = len(preds)
-            detection_text = '[PKLot-FRCNN] {} spots found at 0.7 level'.format(pred_count)
+            detection_text = '[FRCNN-Inception] {} spots found at 0.7 level'.format(pred_count)
 
         else:
             print('-- COMPTUTING POSE')
             preds = self.fastLotDetector.detect_drone_img(image=frame, confidence=0.7)
             pred_count = len(preds)
-            detection_text = '[PKLot-SSD] {} spots found at 0.7 level'.format(pred_count)
+            detection_text = '[FRCNN-Inception] {} spots found at 0.7 level'.format(pred_count)
 
         isLotText = '[IsLotCNN] IS LOT PROBABILITY: {0:.2f}%'.format(lot_prob*100)
 
         print(isLotText)
         print(detection_text)
-
-        #preds = [PKLotBox(120,120,300,300,2.0,0.9)]
 
         img = cv2.putText(img=frame,
                           text=isLotText,

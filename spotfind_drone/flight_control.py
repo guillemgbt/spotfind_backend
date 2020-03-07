@@ -6,7 +6,7 @@ from djitellopy import Tello
 from spotfind_drone.utils import Utils
 from spotfind_drone.frame_capture import FrameCapture
 from spotfind_drone.AI.is_lot_cnn import IsLotCNN
-from spotfind_drone.AI.pk_lot_detector import SSDMobilenetV2PKLotDetector, FasterRCNNResnet50PKLotDetector
+from spotfind_drone.AI.pk_lot_detector import SSDMobilenetV2PKLotDetector, FasterRCNNResnet50PKLotDetector, SSDInceptionPKLotDetector, FasterRCNNInceptionPKLotDetector
 from spotfind_drone.pk_lot_data_retriever import PKLotDataRetriever
 import matplotlib.pyplot as plt
 import random
@@ -187,8 +187,8 @@ class FlightControl:
         Utils.printInfo('setting flight state to: '+flight_state.state)
 
     def set_up_networks(self):
-        self.frcnn_pklot = FasterRCNNResnet50PKLotDetector()
-        self.ssd_pklot = SSDMobilenetV2PKLotDetector()
+        self.frcnn_pklot = FasterRCNNInceptionPKLotDetector()
+        self.ssd_pklot = FasterRCNNInceptionPKLotDetector()
         self.cnn_is_lot = IsLotCNN()
 
     def set_up_drone(self):
