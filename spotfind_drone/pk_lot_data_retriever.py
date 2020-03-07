@@ -28,7 +28,7 @@ class PKLotDataRetriever(object):
         lot = self.fetch_lot()
 
         Utils.printInfo('Analysing lot: ' + lot.name)
-        Utils.printInfo('{} filtered predictions'.format(len(_preds)))
+        Utils.printInfo('Processing {} lots'.format(len(_preds)))
 
         self.compute_spots_from(image=lot_image, predictions=_preds)
         self.compute_lot_state_info()

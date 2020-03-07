@@ -16,17 +16,18 @@ class FlightControl:
 
     def __init__(self, lot_id):
         self.lot_id = lot_id
-        self.initial_height = 500
+        self.initial_height = 400
         self.drone_speed = 10
         self.drone = None
         self.ssd_pklot = None
-        self.ssd_lot_thr = 3
-        self.ssd_detect_conf = 0.8
+        self.ssd_lot_thr = 2
+        self.ssd_detect_conf = 0.7
         self.frcnn_pklot = None
         self.frcnn_detect_conf = 0.7
         self.cnn_is_lot = None
-        self.is_lot_thr = 0.8
+        self.is_lot_thr = 0.6
         self.info_retriever = PKLotDataRetriever(lot_id=lot_id)
+        self.stream = None
 
     def async_start(self):
         t = threading.Thread(target=self.start, name='flight_thread')
@@ -45,21 +46,21 @@ class FlightControl:
         self.set_initial_position()
         Utils.printInfo('Done is in initial position')
 
-        stream = self.prepare_stream()
+        self.stream = self.prepare_stream()
 
         self.set_state_to(constants.STATE_SCANNING)
 
         while True:
             time.sleep(2)
 
-            img = stream.frame
+            img = self.stream.frame
 
             Utils.printInfo('Finding initial pose.')
 
             while not self.is_pointing_to_lot(image=img):
                 Utils.printInfo('Not pointing to lot in initial position yet.')
                 self.adjust_initial_pose()
-                img = stream.frame
+                img = self.stream.frame
 
                 if self.should_finish_flight():
                     break
@@ -71,21 +72,33 @@ class FlightControl:
             Utils.printInfo('Retrieving info from image.')
             self.retrieve_info_from(image=img, clear_db_spots=True)
 
-            #Adjust height if needed
-            height = self.drone.get_height()
-            Utils.printInfo('drone height: '+str(height))
+            for angle in [90, 180, 270]:
+                Utils.printInfo('Analysing {}º'.format(angle))
+                self.move_to_next_angle()
+                img = self.stream.frame
+                if self.is_pointing_to_lot(image=img):
+                    Utils.printInfo('Lot detected at {}º pose'.format(angle))
+                    Utils.printInfo('Retrieving info from image.')
+                    self.retrieve_info_from(image=img, clear_db_spots=False)
+                else:
+                    Utils.printInfo('No lot detected at {}º pose'.format(angle))
+
+                if self.should_finish_flight():
+                    break
+
+            if self.should_finish_flight():
+                break
+
+            self.change_initial_position()
 
             if self.should_finish_flight():
                 break
 
             break #To test only one iteration
 
-
-
-
         Utils.printInfo('Loop Done')
 
-        stream.stop()
+        self.stream.stop()
         self.finish_flight()
 
     def retrieve_info_from(self, image, clear_db_spots):
@@ -120,6 +133,37 @@ class FlightControl:
         self.drone.move_forward(forward_distance)
         time.sleep(1)
 
+    def move_to_next_angle(self):
+        self.drone.rotate_clockwise(90)
+        time.sleep(1)
+
+    def change_initial_position(self):
+        Utils.printInfo('Changing initial position')
+
+        forward_distance = 500
+
+        while True:
+            rotation_direction = random.randint(0, 1)
+            rotation_angle = random.randint(20, 180)
+
+            if rotation_direction:
+                Utils.printInfo('Rotating clockwise: {}'.format(rotation_angle))
+                self.drone.rotate_clockwise(rotation_angle)
+            else:
+                Utils.printInfo('Rotating counter clockwise: {}'.format(rotation_angle))
+                self.drone.rotate_counter_clockwise(rotation_angle)
+            time.sleep(1)
+
+            img = self.stream.frame
+            if self.is_pointing_to_lot(image=img):
+                break
+            else:
+                Utils.printInfo('Not pointing to lot, rotate again.')
+
+        Utils.printInfo('Moving forward: {}'.format(forward_distance))
+        self.drone.move_forward(forward_distance)
+        time.sleep(1)
+        Utils.printInfo('Changed to next initial position.')
 
     def get_flight_state(self):
         state = FlightState.objects.filter(lot_id=self.lot_id).first()

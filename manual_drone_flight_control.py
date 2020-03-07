@@ -12,7 +12,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "spotfind_backend.settings")
 django.setup()
 
 
-from spotfind_drone.AI.pk_lot_detector import FasterRCNNInceptionPKLotDetector, SSDMobilenetV2PKLotDetector, PKLotBox
+from spotfind_drone.AI.pk_lot_detector import FasterRCNNInceptionPKLotDetector, SSDMobilenetV2PKLotDetector, FasterRCNNResnet50PKLotDetector, SSDInceptionPKLotDetector, PKLotBox
 from spotfind_drone.AI.is_lot_cnn import IsLotCNN
 from spotfind_drone.pk_lot_data_retriever import PKLotDataRetriever
 
@@ -63,8 +63,8 @@ class FrontEnd(object):
         self.is_computing_spots = False
         self.image_count = 0
         self.isLotCNN = IsLotCNN()
-        self.lotDetector = FasterRCNNInceptionPKLotDetector()
-        self.fastLotDetector = SSDMobilenetV2PKLotDetector()
+        self.lotDetector = FasterRCNNResnet50PKLotDetector()
+        self.fastLotDetector = SSDInceptionPKLotDetector()
 
         # create update timer
         pygame.time.set_timer(pygame.USEREVENT + 1, 50)
@@ -156,7 +156,7 @@ class FrontEnd(object):
 
         else:
             print('-- COMPTUTING POSE')
-            preds = self.lotDetector.detect_drone_img(image=frame, confidence=0.7)
+            preds = self.fastLotDetector.detect_drone_img(image=frame, confidence=0.7)
             pred_count = len(preds)
             detection_text = '[PKLot-SSD] {} spots found at 0.7 level'.format(pred_count)
 
