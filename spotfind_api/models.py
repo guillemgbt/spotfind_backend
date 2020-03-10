@@ -5,7 +5,7 @@ from spotfind_backend import settings
 class Lot(models.Model):
     name = models.CharField(max_length=100, blank=False, default='')
     created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
     image = models.ImageField(blank=True, null=True)
     occupancy = models.FloatField(blank=True, null=True)
     tendency = models.CharField(max_length=100, blank=False, default=constants.LOT_TENDENCY_SAME)
